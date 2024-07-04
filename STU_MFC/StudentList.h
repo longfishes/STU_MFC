@@ -1,56 +1,73 @@
 #include "Student.h"
-#include <map>
 #include <fstream>
 #include <sstream>
 #include <vector>
 
 using namespace std;
 
-bool containsString(const std::string& haystack, const std::string& needle) {
-    return haystack.find(needle) != std::string::npos;
-}
+// 定义二叉搜索树 BST 树根节点 数据结构
+struct TreeNode {
+    string key;
+    Student value;
+    TreeNode* left;
+    TreeNode* right;
+
+    TreeNode(string k, Student v) : key(k), value(v), left(nullptr), right(nullptr) {}
+};
 
 class StudentList {
 
-    map<string, Student> data;
-
+    TreeNode* root;
     ExternalList elist;
 
 public:
 
+    StudentList() : root(nullptr) {}
+
+    ~StudentList() {
+        clearTree(root);
+    }
+
     void loads() {
-        data.clear();
-        ifstream temp("db.txt");
-        if (!temp.good()) {
-            temp.close();
-            ofstream outfile("db.txt");
-            outfile << "200000000001	张三	1	19	广东省	软件    tt\n";
-            outfile << "200000000003	李四	2	20	广东省	软件    new\n";
-            outfile.close();
-        }
+        clearTree(root);
+        root = nullptr;
+
         ifstream file("db.txt");
-        if (!file.is_open()) {
-            printf("文件在另一进程中已打开\n");
-            exit(1);
+        if (!file.is_open() || file.peek() == ifstream::traits_type::eof()) {
+            file.close();
+            ofstream outfile("db.txt");
+            if (!outfile) {
+                cout << "Failed to create db.txt" << endl;
+                return;
+            }
+            outfile << "200000000001\t张三\t1\t19\t广东省\t软件\ttt\n";
+            outfile << "200000000003\t李四\t2\t20\t广东省\t软件\tnew\n";
+            outfile.close();
+
+            // Re-open file for reading after writing default data
+            file.open("db.txt");
+            if (!file.is_open()) {
+                cout << "Failed to open db.txt after writing" << endl;
+                return;
+            }
         }
+
         string line;
         while (getline(file, line)) {
-            if (file.fail()) {
-                printf("读取文件时出错\n");
-                break;
-            }
             istringstream iss(line);
             vector<string> fields;
             string field;
             while (iss >> field) {
                 fields.push_back(field);
             }
+
             try {
-                Student save;
                 if (fields.size() < 6) {
-                    throw "exp";
+                    throw "Invalid data format";
                 }
+
                 string id = fields[0];
+                Student save;
                 save.name = fields[1];
                 save.gender = stoi(fields[2]);
                 save.age = stoi(fields[3]);
@@ -67,114 +84,194 @@ public:
 
                 put(id, save);
             }
-            catch (...) {
-
+            catch (const char* msg) {
+                cerr << "Error: " << msg << endl;
             }
         }
+
         file.close();
     }
 
     void save() {
-        std::ofstream outfile("db.txt");
+        ofstream outfile("db.txt");
         if (!outfile) {
-            printf("文件在另一进程中已打开\n");
-            exit(1);
+            cout << "Failed to open db.txt for writing" << endl;
+            return;
         }
 
-        for (auto it = data.begin(); it != data.end(); ++it) {
-            string id = it->first;
-            Student save = it->second;
-
-            outfile << id << "\t";
-            outfile << save.name << "\t" << save.gender << "\t" << save.age << "\t" << save.province << "\t" << save.major << "\t";
-            outfile << save.elist.getVals();
-            outfile << "\n";
-        }
+        saveTree(root, outfile);
 
         outfile.close();
     }
 
     void put(string id, Student stu) {
-        if (contains(id)) {
-            data.at(id) = stu;
-        }
-        else {
-            data.insert({ id, stu });
-        }
+        root = insert(root, id, stu);
     }
 
     bool contains(string id) {
-        return data.count(id) > 0;
+        return search(root, id) != nullptr;
     }
 
     Student get(string id) {
-        return data.at(id);
+        TreeNode* node = search(root, id);
+        if (node) {
+            return node->value;
+        }
+        else {
+            throw "Student not found";
+        }
     }
 
     void del(string id) {
-        data.erase(id);
-    }
-
-    string printHeader() {
-        string s;
-        elist.loads();
-        s += "学号\t\t姓名\t性别\t年龄\t省份\t专业\t";
-        s += elist.printHeader();
-        return s;
-    }
-
-    void print() {
-        printHeader();
-        for (auto it = data.begin(); it != data.end(); ++it) {
-            std::cout << it->first << "\t" << it->second.toString() << "\t" << endl;
-        }
-        cout << endl;
-    }
-
-    string printOne(string id) {
-        string s;
-        if (!contains(id)) {
-            return "查询的学生不存在！";
-        }
-        else {
-            s += printHeader();
-            s += id + "\t" + get(id).toString();
-        }
-        return s;
-    }
-
-    void printSearch(string name) {
-        printHeader();
-        for (auto it = data.begin(); it != data.end(); ++it) {
-            string id = it->first;
-            Student result = it->second;
-            if (containsString(result.name, name)) {
-                cout << id << "\t" << get(id).toString() << endl;
-            }
-        }
-        cout << endl;
+        root = remove(root, id);
     }
 
     void setDefaultVal(string key, string name, string regex) {
-        for (auto it = data.begin(); it != data.end(); ++it) {
-            Extend ext = Extend(name, regex);
-            ext.val = "null";
-            it->second.elist.put(key, ext);
-        }
+        setDefaultValues(root, key, name, regex);
     }
 
     void delVals(string key) {
-        for (auto it = data.begin(); it != data.end(); ++it) {
-            it->second.elist.del(key);
-        }
+        deleteValues(root, key);
     }
 
     map<string, Student> getData() {
-        return data;
+        map<string, Student> result;
+        collectData(root, result);
+        return result;
     }
 
     ExternalList getElist() {
         return elist;
+    }
+
+private:
+
+    // 二叉搜索树 BST 数据结构
+
+    TreeNode* insert(TreeNode* node, string key, Student value) {
+        if (node == nullptr) {
+            return new TreeNode(key, value);
+        }
+
+        if (key < node->key) {
+            node->left = insert(node->left, key, value);
+        }
+        else if (key > node->key) {
+            node->right = insert(node->right, key, value);
+        }
+        else {
+            node->value = value; // 更新存在的节点
+        }
+
+        return node;
+    }
+
+    TreeNode* search(TreeNode* node, string key) {
+        if (node == nullptr || node->key == key) {
+            return node;
+        }
+
+        if (key < node->key) {
+            return search(node->left, key);
+        }
+        else {
+            return search(node->right, key);
+        }
+    }
+
+    void saveTree(TreeNode* node, ofstream& outfile) {
+        if (node != nullptr) {
+            saveTree(node->left, outfile);
+
+            outfile << node->key << "\t";
+            Student save = node->value;
+            outfile << save.name << "\t" << save.gender << "\t" << save.age << "\t" << save.province << "\t" << save.major << "\t";
+            outfile << save.elist.getVals();
+            outfile << "\n";
+
+            saveTree(node->right, outfile);
+        }
+    }
+
+    TreeNode* remove(TreeNode* node, string key) {
+        if (node == nullptr) {
+            return nullptr;
+        }
+
+        if (key < node->key) {
+            node->left = remove(node->left, key);
+        }
+        else if (key > node->key) {
+            node->right = remove(node->right, key);
+        }
+        else {
+            // 找到要删除的节点
+            if (node->left == nullptr) {
+                TreeNode* temp = node->right;
+                delete node;
+                return temp;
+            }
+            else if (node->right == nullptr) {
+                TreeNode* temp = node->left;
+                delete node;
+                return temp;
+            }
+
+            // 拥有两个子节点的节点：获取中序遍历的后继节点（右子树中的最小节点）
+            TreeNode* temp = minValueNode(node->right);
+
+            // 将中序遍历的后继节点的内容复制到当前节点
+            node->key = temp->key;
+            node->value = temp->value;
+
+            // 删除中序遍历的后继节点
+            node->right = remove(node->right, temp->key);
+        }
+
+        return node;
+    }
+
+    TreeNode* minValueNode(TreeNode* node) {
+        TreeNode* current = node;
+        while (current && current->left != nullptr) {
+            current = current->left;
+        }
+        return current;
+    }
+
+    void clearTree(TreeNode* node) {
+        if (node != nullptr) {
+            clearTree(node->left);
+            clearTree(node->right);
+            delete node;
+        }
+    }
+
+    void setDefaultValues(TreeNode* node, string key, string name, string regex) {
+        if (node != nullptr) {
+            Extend ext = Extend(name, regex);
+            ext.val = "*待填写*";
+            node->value.elist.put(key, ext);
+
+            setDefaultValues(node->left, key, name, regex);
+            setDefaultValues(node->right, key, name, regex);
+        }
+    }
+
+    void deleteValues(TreeNode* node, string key) {
+        if (node != nullptr) {
+            node->value.elist.del(key);
+            deleteValues(node->left, key);
+            deleteValues(node->right, key);
+        }
+    }
+
+    void collectData(TreeNode* node, map<string, Student>& result) {
+        if (node != nullptr) {
+            collectData(node->left, result);
+            result[node->key] = node->value;
+            collectData(node->right, result);
+        }
     }
 
 };

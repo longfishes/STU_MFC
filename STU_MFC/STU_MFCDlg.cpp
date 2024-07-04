@@ -72,9 +72,6 @@ void CSTUMFCDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_DELETE_STU, btn_delete_stu);
 	DDX_Control(pDX, IDC_QUERY_STU, btn_search);
 	DDX_Control(pDX, IDC_SHOW_FIELD, btn_show_field);
-	DDX_Control(pDX, IDC_ADD_FIELD, btn_add_field);
-	DDX_Control(pDX, IDC_EDIT_FIELD, btn_edit_field);
-	DDX_Control(pDX, IDC_DELETE_FIELD, btn_delete_field);
 }
 
 BEGIN_MESSAGE_MAP(CSTUMFCDlg, CDialogEx)
@@ -85,10 +82,9 @@ BEGIN_MESSAGE_MAP(CSTUMFCDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_EDIT_STU, &CSTUMFCDlg::OnBnClickedEditStuButton)
 	ON_BN_CLICKED(IDC_QUERY_STU, &CSTUMFCDlg::OnBnClickedQueryStuButton)
 	ON_BN_CLICKED(IDC_DELETE_STU, &CSTUMFCDlg::OnBnClickedDeleteStuButton)
-	ON_BN_CLICKED(IDC_ADD_FIELD, &CSTUMFCDlg::OnBnClickedAddFieldButton)
-	ON_BN_CLICKED(IDC_DELETE_FIELD, &CSTUMFCDlg::OnBnClickedDeleteFieldButton)
-	ON_BN_CLICKED(IDC_EDIT_FIELD, &CSTUMFCDlg::OnBnClickedEditFieldButton)
 	ON_BN_CLICKED(IDC_SHOW_FIELD, &CSTUMFCDlg::OnBnClickedShowFieldButton)
+	ON_BN_CLICKED(IDC_CLEAR, &CSTUMFCDlg::OnClearButtonClicked)
+	ON_NOTIFY(NM_DBLCLK, IDC_MAIN_LIST, &CSTUMFCDlg::OnItemDoubleClick)
 END_MESSAGE_MAP()
 
 
@@ -129,9 +125,6 @@ BOOL CSTUMFCDlg::OnInitDialog()
 	list.loads();
 	m_list.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
 	LoadList();
-	btn_add_field.EnableWindow(FALSE);
-	btn_delete_field.EnableWindow(FALSE);
-	btn_edit_field.EnableWindow(FALSE);
 
 	if (m_query.GetSafeHwnd() != nullptr)
 	{
@@ -185,7 +178,7 @@ void CSTUMFCDlg::OnPaint()
 
 BOOL CSTUMFCDlg::PreTranslateMessage(MSG* pMsg)
 {
-	// 按下回车键
+	// 按下Enter键
 	if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN)
 	{
 		if (btn_search.IsWindowEnabled())
@@ -264,6 +257,14 @@ BOOL CSTUMFCDlg::PreTranslateMessage(MSG* pMsg)
 		return FALSE;
 	}
 
+	// 按下ctrl + R键
+	if (pMsg->message == WM_KEYDOWN && pMsg->wParam == 'R' && (GetKeyState(VK_CONTROL) & 0x8000))
+	{	
+		OnClearButtonClicked();
+
+		return TRUE;
+	}
+
 	// 按下 up / down 键
 	if (pMsg->message == WM_KEYDOWN && (pMsg->wParam == VK_UP || pMsg->wParam == VK_DOWN))
 	{
@@ -278,6 +279,10 @@ BOOL CSTUMFCDlg::PreTranslateMessage(MSG* pMsg)
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
 
+bool containsString(const std::string& haystack, const std::string& needle) {
+	return haystack.find(needle) != std::string::npos;
+}
+
 //当用户拖动最小化窗口时系统调用此函数取得光标
 //显示。
 HCURSOR CSTUMFCDlg::OnQueryDragIcon()
@@ -287,6 +292,11 @@ HCURSOR CSTUMFCDlg::OnQueryDragIcon()
 
 void CSTUMFCDlg::OnBnClickedAddStuButton()
 {
+	if (isFieldManage)
+	{
+		OnBnClickedAddFieldButton();
+		return;
+	}
 	string id = readLineValid("学号：", "^(20[0-9]{2})\\d{8}$");
 	if (id == "cancelled")
 	{
@@ -364,18 +374,25 @@ void CSTUMFCDlg::OnBnClickedAddStuButton()
 
 void CSTUMFCDlg::OnBnClickedEditStuButton()
 {
-	string id = GetSelectedId();
-	if (id == "") {
+	if (isFieldManage)
+	{
+		OnBnClickedEditFieldButton();
+		return;
+	}
+	std::vector<CString> ids = GetSelectedIds();
+
+	if (ids.size() > 1)
+	{
+		warn("请不要多选！");
+		return;
+	}
+
+	if (ids.size() == 0) {
 		warn("未选中任何学生！");
 		return;
 	}
+	string id = string(CT2A(ids.at(0)));
 	Student stu = list.get(id);
-	INT_PTR nResponse = notice("确认学生的信息：\n\n" + list.printOne(id));
-	if (nResponse != IDOK)
-	{
-		warn("已取消！");
-		return;
-	}
 	
 	string name = readLineDef("姓名", stu.name);
 	if (name == "cancelled")
@@ -433,19 +450,28 @@ void CSTUMFCDlg::OnBnClickedEditStuButton()
 
 void CSTUMFCDlg::OnBnClickedDeleteStuButton()
 {
-	string id = GetSelectedId();
-	if (id == "")
+	if (isFieldManage)
+	{
+		OnBnClickedDeleteFieldButton();
+		return;
+	}
+
+	std::vector<CString> ids = GetSelectedIds();
+
+	if (ids.size() == 0)
 	{
 		warn("未选中任何学生！");
 		return;
 	}
-	INT_PTR nResponse = notice("是否确认删除以下学生？：\n\n" + list.printOne(id));
+	INT_PTR nResponse = notice("是否确认删除？");
 	if (nResponse != IDOK)
 	{
 		warn("已取消！");
 		return;
 	}
-	list.del(id);
+	for (auto it = ids.begin(); it != ids.end(); ++it) {
+		list.del(string(CT2A(*it)));
+	}
 	list.save();
 	ClearAllList();
 	LoadList();
@@ -454,6 +480,11 @@ void CSTUMFCDlg::OnBnClickedDeleteStuButton()
 
 void CSTUMFCDlg::OnBnClickedQueryStuButton()
 {
+	if (isFieldManage)
+	{
+		OnBnClickedQueryFieldButton();
+		return;
+	}
 	m_query.GetWindowTextW(query_text);
 	string check = string(CT2A(query_text));
 	if (need_trim(check))
@@ -562,30 +593,34 @@ void CSTUMFCDlg::OnBnClickedAddFieldButton()
 
 void CSTUMFCDlg::OnBnClickedDeleteFieldButton()
 {
-	string key = GetSelectedId();
-	if (key == "")
+	std::vector<CString> keys = GetSelectedIds();
+
+	if (keys.size() == 0)
 	{
 		warn("未选中任何字段！");
 		return;
 	}
-	if (key == "systemFieldSelected")
-	{
-		warn("系统字段，不支持删除！");
-		return;
+	for (auto it = keys.begin(); it != keys.end(); ++it) {
+		if (string(CT2A(*it)) == "systemFieldSelected")
+		{
+			warn("选中字段包含系统字段，不支持删除！");
+			return;
+		}
 	}
 	ExternalList elist = list.getElist();
 
-	Extend ext = elist.get(key);
-	INT_PTR nResponse = notice("是否确认删除以下字段？\n\n" + elist.printHeaderOfFields() + "\n" + key + "\t\t" + ext.name + "\t\t" + ext.regex);
+	INT_PTR nResponse = notice("是否确认删除？");
 	if (nResponse != IDOK)
 	{
 		warn("已取消！");
 		return;
 	}
-	elist.del(key);
-	list.delVals(key);
-	elist.save();
-	list.save();
+	for (auto it = keys.begin(); it != keys.end(); ++it) {
+		elist.del(string(CT2A(*it)));
+		list.delVals(string(CT2A(*it)));
+		elist.save();
+		list.save();
+	}
 	ClearAllList();
 	LoadListFiled();
 	notice("操作成功！");
@@ -594,24 +629,28 @@ void CSTUMFCDlg::OnBnClickedDeleteFieldButton()
 void CSTUMFCDlg::OnBnClickedEditFieldButton()
 {
 	ExternalList elist = list.getElist();
-	string key = GetSelectedId();
-	if (key == "")
+	std::vector<CString> keys = GetSelectedIds();
+
+	if (keys.size() > 1)
+	{
+		warn("请不要多选！");
+		return;
+	}
+
+	if (keys.size() == 0)
 	{
 		warn("未选中任何字段！");
 		return;
 	}
+
+	string key = GetSelectedId();
+
 	if (key == "systemFieldSelected")
 	{
 		warn("系统字段，不支持修改！");
 		return;
 	}
 	Extend ext = elist.get(key);
-	INT_PTR nResponse = notice("即将修改以下字段\n\n" + elist.printHeaderOfFields() + "\n" + key + "\t\t" + ext.name + "\t\t" + ext.regex);
-	if (nResponse != IDOK)
-	{
-		warn("已取消！");
-		return;
-	}
 	string name = readLineDef("中文名", ext.name);
 	if (name == "cancelled")
 	{
@@ -639,26 +678,14 @@ void CSTUMFCDlg::OnBnClickedShowFieldButton()
 		LoadListFiled();
 
 		isFieldManage = true;
-		btn_search.EnableWindow(FALSE);
-		btn_add_stu.EnableWindow(FALSE);
-		btn_delete_stu.EnableWindow(FALSE);
-		btn_edit_stu.EnableWindow(FALSE);
-		btn_add_field.EnableWindow(TRUE);
-		btn_delete_field.EnableWindow(TRUE);
-		btn_edit_field.EnableWindow(TRUE);
+		m_query.SendMessage(EM_SETCUEBANNER, TRUE, (LPARAM)(LPCTSTR)_T("新增字段名称(Q)"));
 	}
 	else
 	{
 		ClearAllList();
 		LoadList();
 		isFieldManage = false;
-		btn_search.EnableWindow(TRUE);
-		btn_add_stu.EnableWindow(TRUE);
-		btn_delete_stu.EnableWindow(TRUE);
-		btn_edit_stu.EnableWindow(TRUE);
-		btn_add_field.EnableWindow(FALSE);
-		btn_delete_field.EnableWindow(FALSE);
-		btn_edit_field.EnableWindow(FALSE);
+		m_query.SendMessage(EM_SETCUEBANNER, TRUE, (LPARAM)(LPCTSTR)_T("学号/姓名(Q)"));
 	}
 }
 
@@ -710,7 +737,7 @@ void CSTUMFCDlg::ClearAllList()
 	}
 }
 
-string CSTUMFCDlg::GetSelectedId()
+std::string CSTUMFCDlg::GetSelectedId()
 {
 	POSITION pos = m_list.GetFirstSelectedItemPosition();
 	if (pos != nullptr) {
@@ -730,6 +757,29 @@ string CSTUMFCDlg::GetSelectedId()
 		return string(CT2A(m_list.GetItemText(nItem, 0)));
 	}
 	return "";
+}
+
+std::vector<CString> CSTUMFCDlg::GetSelectedIds()
+{
+	std::vector<CString> selectedItems;
+	POSITION pos = m_list.GetFirstSelectedItemPosition();
+
+	while (pos != nullptr)
+	{
+		int nSelectedRow = m_list.GetNextSelectedItem(pos);
+		if (isFieldManage)
+		{
+			if (nSelectedRow <= 5)
+			{
+				selectedItems.push_back(_T("systemFieldSelected"));
+				continue;
+			}
+		}
+		CString strItemText = m_list.GetItemText(nSelectedRow, 0);
+		selectedItems.push_back(strItemText);
+	}
+
+	return selectedItems;
 }
 
 void CSTUMFCDlg::LoadFieldHeader()
@@ -783,4 +833,64 @@ void CSTUMFCDlg::LoadListFiled()
 		m_list.SetItemText(j, 2, CString(it->second.regex.c_str()));
 		j++;
 	}
+}
+
+void CSTUMFCDlg::OnClearButtonClicked()
+{
+	m_query.SetWindowTextW(_T(""));
+}
+
+void CSTUMFCDlg::OnBnClickedQueryFieldButton()
+{
+	m_query.GetWindowTextW(query_text);
+	string check = string(CT2A(query_text));
+	if (need_trim(check))
+	{
+		string trimed = trim(check);
+		m_query.SetWindowTextW(CString(trimed.c_str()));
+		m_query.GetWindowTextW(query_text);
+	}
+
+	if (query_text == "")
+	{
+		ClearAllList();
+		LoadListFiled();
+		return;
+	}
+
+	m_list.DeleteAllItems();
+	ExternalList elist = list.getElist();
+	
+	map<string, Extend> data = elist.getData();
+	for (auto it = data.begin(); it != data.end(); ++it) {
+		string id = it->first;
+		Extend result = it->second;
+		int j = 0;
+		if (containsString(result.name, string(CT2A(query_text)))) {
+			m_list.InsertItem(j, CString(id.c_str()));
+			m_list.SetItemText(j, 1, CString(result.name.c_str()));
+			m_list.SetItemText(j, 2, CString(result.regex.c_str()));
+		}
+		j++;
+	}
+}
+
+void CSTUMFCDlg::OnItemDoubleClick(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	NMITEMACTIVATE* pNMIA = reinterpret_cast<NMITEMACTIVATE*>(pNMHDR);
+
+	if (pNMIA->hdr.code == NM_DBLCLK)
+	{
+		int nItem = pNMIA->iItem;
+		string first = string(CT2A(m_list.GetItemText(nItem, 0)));
+
+		if (isFieldManage)
+		{
+			OnBnClickedEditFieldButton();
+			return;
+		}
+		OnBnClickedEditStuButton();
+	}
+
+	*pResult = 0;
 }

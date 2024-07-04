@@ -12,24 +12,6 @@ class ExternalList {
 
 public:
 
-    string printHeaderOfFields() {
-        return  "英文名\t\t中文名\t\t正则";
-    }
-
-    void show() {
-        printHeaderOfFields();
-        cout << "id\t\t" << "学号\t\t" << "^(20[0-9]{2})\\d{8}$" << "\t\t（系统预设字段）" << endl;
-        cout << "name\t\t" << "姓名\t\t" << "^.*$" << "\t\t\t\t（系统预设字段）" << endl;
-        cout << "gender\t\t" << "性别\t\t" << "^[0-2]$" << "\t\t\t\t（系统预设字段）" << endl;
-        cout << "age\t\t" << "年龄\t\t" << "^([1-9][0-9]{1,2})$" << "\t\t（系统预设字段）" << endl;
-        cout << "province\t" << "省份\t\t" << "^.*$" << "\t\t\t\t（系统预设字段）" << endl;
-        cout << "major\t\t" << "专业\t\t" << "^.*$" << "\t\t\t\t（系统预设字段）" << endl;
-        for (auto it = data.begin(); it != data.end(); ++it) {
-            cout << it->first << "\t\t" << it->second.name << "\t\t" << it->second.regex << endl;
-        }
-        cout << endl;
-    }
-
     void loads() {
         data.clear();
         ifstream temp("external_db.txt");
@@ -127,14 +109,6 @@ public:
         return data.size();
     }
 
-    string printHeader() {
-        string s;
-        for (auto it = data.begin(); it != data.end(); ++it) {
-            s += it->second.name + "\t";
-        }
-        return s + "\n";
-    }
-
     string getVals() {
         string str;
         int i = 0;
@@ -146,12 +120,7 @@ public:
         return str;
     }
 
-    void printVals() {
-        cout << getVals() << endl;
-    }
-
     map<string, Extend> getData() {
         return data;
     }
-
 };
