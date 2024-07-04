@@ -52,8 +52,6 @@ END_MESSAGE_MAP()
 
 // CSTUMFCDlg 对话框
 
-
-
 CSTUMFCDlg::CSTUMFCDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_STU_MFC_DIALOG, pParent)
 	, query_text(_T(""))
@@ -72,6 +70,7 @@ void CSTUMFCDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_DELETE_STU, btn_delete_stu);
 	DDX_Control(pDX, IDC_QUERY_STU, btn_search);
 	DDX_Control(pDX, IDC_SHOW_FIELD, btn_show_field);
+	DDX_Control(pDX, IDC_HIDE, btn_hide);
 }
 
 BEGIN_MESSAGE_MAP(CSTUMFCDlg, CDialogEx)
@@ -85,6 +84,7 @@ BEGIN_MESSAGE_MAP(CSTUMFCDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_SHOW_FIELD, &CSTUMFCDlg::OnBnClickedShowFieldButton)
 	ON_BN_CLICKED(IDC_CLEAR, &CSTUMFCDlg::OnClearButtonClicked)
 	ON_NOTIFY(NM_DBLCLK, IDC_MAIN_LIST, &CSTUMFCDlg::OnItemDoubleClick)
+	ON_BN_CLICKED(IDC_HIDE, &CSTUMFCDlg::OnBnClickedHide)
 END_MESSAGE_MAP()
 
 
@@ -261,6 +261,14 @@ BOOL CSTUMFCDlg::PreTranslateMessage(MSG* pMsg)
 	if (pMsg->message == WM_KEYDOWN && pMsg->wParam == 'R' && (GetKeyState(VK_CONTROL) & 0x8000))
 	{	
 		OnClearButtonClicked();
+
+		return TRUE;
+	}
+
+	// 按下ctrl + H键
+	if (pMsg->message == WM_KEYDOWN && pMsg->wParam == 'H' && (GetKeyState(VK_CONTROL) & 0x8000))
+	{
+		OnBnClickedHide();
 
 		return TRUE;
 	}
@@ -740,7 +748,7 @@ std::string CSTUMFCDlg::GetSelectedId()
 		if (isFieldManage)
 		{
 			int nItem = m_list.GetNextSelectedItem(pos);
-			if (nItem <= 5)
+			if (std::string(CT2A(m_list.GetItemText(nItem, 3))) == "系统预设字段")
 			{
 				return "systemFieldSelected";
 			}
@@ -765,7 +773,7 @@ std::vector<CString> CSTUMFCDlg::GetSelectedIds()
 		int nSelectedRow = m_list.GetNextSelectedItem(pos);
 		if (isFieldManage)
 		{
-			if (nSelectedRow <= 5)
+			if (std::string(CT2A(m_list.GetItemText(nSelectedRow, 3))) == "系统预设字段")
 			{
 				selectedItems.push_back(_T("systemFieldSelected"));
 				continue;
@@ -792,37 +800,47 @@ void CSTUMFCDlg::LoadListFiled()
 	LoadFieldHeader();
 	map<string, Extend> fields = list.getElist().getData();
 
-	m_list.InsertItem(0, _T("id"));
-	m_list.SetItemText(0, 1, _T("学号"));
-	m_list.SetItemText(0, 2, _T("^(20[0-9]{2})\\d{8}$"));
-	m_list.SetItemText(0, 3, _T("系统预设字段"));
+	int j;
 
-	m_list.InsertItem(0, _T("name"));
-	m_list.SetItemText(0, 1, _T("姓名"));
-	m_list.SetItemText(0, 2, _T("^.*$"));
-	m_list.SetItemText(0, 3, _T("系统预设字段"));
+	if (!isHiddenSysField)
+	{
+		m_list.InsertItem(0, _T("id"));
+		m_list.SetItemText(0, 1, _T("学号"));
+		m_list.SetItemText(0, 2, _T("^(20[0-9]{2})\\d{8}$"));
+		m_list.SetItemText(0, 3, _T("系统预设字段"));
 
-	m_list.InsertItem(0, _T("gender"));
-	m_list.SetItemText(0, 1, _T("性别"));
-	m_list.SetItemText(0, 2, _T("^[0-2]$"));
-	m_list.SetItemText(0, 3, _T("系统预设字段"));
+		m_list.InsertItem(0, _T("name"));
+		m_list.SetItemText(0, 1, _T("姓名"));
+		m_list.SetItemText(0, 2, _T("^.*$"));
+		m_list.SetItemText(0, 3, _T("系统预设字段"));
 
-	m_list.InsertItem(0, _T("age"));
-	m_list.SetItemText(0, 1, _T("年龄"));
-	m_list.SetItemText(0, 2, _T("^([1-9][0-9]{1,2})$"));
-	m_list.SetItemText(0, 3, _T("系统预设字段"));
+		m_list.InsertItem(0, _T("gender"));
+		m_list.SetItemText(0, 1, _T("性别"));
+		m_list.SetItemText(0, 2, _T("^[0-2]$"));
+		m_list.SetItemText(0, 3, _T("系统预设字段"));
 
-	m_list.InsertItem(0, _T("province"));
-	m_list.SetItemText(0, 1, _T("省份"));
-	m_list.SetItemText(0, 2, _T("^.*$"));
-	m_list.SetItemText(0, 3, _T("系统预设字段"));
+		m_list.InsertItem(0, _T("age"));
+		m_list.SetItemText(0, 1, _T("年龄"));
+		m_list.SetItemText(0, 2, _T("^([1-9][0-9]{1,2})$"));
+		m_list.SetItemText(0, 3, _T("系统预设字段"));
 
-	m_list.InsertItem(0, _T("major"));
-	m_list.SetItemText(0, 1, _T("专业"));
-	m_list.SetItemText(0, 2, _T("^.*$"));
-	m_list.SetItemText(0, 3, _T("系统预设字段"));
+		m_list.InsertItem(0, _T("province"));
+		m_list.SetItemText(0, 1, _T("省份"));
+		m_list.SetItemText(0, 2, _T("^.*$"));
+		m_list.SetItemText(0, 3, _T("系统预设字段"));
 
-	int j = 6;
+		m_list.InsertItem(0, _T("major"));
+		m_list.SetItemText(0, 1, _T("专业"));
+		m_list.SetItemText(0, 2, _T("^.*$"));
+		m_list.SetItemText(0, 3, _T("系统预设字段"));
+
+		j = 6;
+	}
+	else
+	{
+		j = 0;
+	}
+
 	for (auto it = fields.begin(); it != fields.end(); ++it) {
 		m_list.InsertItem(j, CString(it->first.c_str()));
 		m_list.SetItemText(j, 1, CString(it->second.name.c_str()));
@@ -889,4 +907,23 @@ void CSTUMFCDlg::OnItemDoubleClick(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 
 	*pResult = 0;
+}
+
+
+void CSTUMFCDlg::OnBnClickedHide()
+{
+	if (!isHiddenSysField)
+	{
+		isHiddenSysField = 1;
+		btn_hide.SetWindowTextW(_T("显示系统字段(H)"));
+	}
+	else
+	{
+		isHiddenSysField = 0;
+		btn_hide.SetWindowTextW(_T("隐藏系统字段(H)"));
+	}
+	if (isFieldManage)
+	{
+		OnBnClickedQueryStuButton();
+	}
 }

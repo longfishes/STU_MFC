@@ -37,7 +37,7 @@ public:
             file.close();
             ofstream outfile("db.txt");
             if (!outfile) {
-                cout << "Failed to create db.txt" << endl;
+                cout << "文件已在另一进程中打开！" << endl;
                 return;
             }
             outfile << "200000000001\t张三\t1\t19\t广东省\t软件\ttt\n";
@@ -47,7 +47,7 @@ public:
             // Re-open file for reading after writing default data
             file.open("db.txt");
             if (!file.is_open()) {
-                cout << "Failed to open db.txt after writing" << endl;
+                cout << "文件已在另一进程中打开！" << endl;
                 return;
             }
         }
@@ -95,7 +95,7 @@ public:
     void save() {
         ofstream outfile("db.txt");
         if (!outfile) {
-            cout << "Failed to open db.txt for writing" << endl;
+            cout << "文件已在另一个进程中打开！" << endl;
             return;
         }
 

@@ -38,9 +38,7 @@ INT_PTR notice(std::string text)
 
 void warn(std::string text)
 {
-	WarnDlg dlg;
-	dlg.text_var = text.c_str();
-	dlg.DoModal();
+	AfxMessageBox(CString(text.c_str()));
 }
 
 string readLine(std::string notice)

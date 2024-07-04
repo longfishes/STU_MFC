@@ -65,6 +65,9 @@ public:
 	CButton btn_delete_field;
 	CMenu m_contextMenu;
 	bool isFieldManage = 0;
+	bool isHiddenSysField = 0;
+	afx_msg void OnBnClickedHide();
+	CButton btn_hide;
 };
 
 

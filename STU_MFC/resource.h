@@ -23,9 +23,12 @@
 #define IDC_DELETE_STU                  1016
 #define IDC_SEARCH                      1017
 #define IDC_STATIC_TEXT                 1018
+#define IDC_HIDE                        1018
 #define IDCANCEL                        1021
 #define IDC_SELECT_INVERT               1023
 #define IDC_CLEAR                       1024
+#define IDC_BUTTON1                     1025
+#define IDC_FILE_IN                     1025
 #define ID_0_1                          32774
 #define ID_0_2                          32775
 #define IDC_CONTEXT_MENU                32776
@@ -39,7 +42,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        151
 #define _APS_NEXT_COMMAND_VALUE         32780
-#define _APS_NEXT_CONTROL_VALUE         1024
+#define _APS_NEXT_CONTROL_VALUE         1026
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
