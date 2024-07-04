@@ -91,7 +91,7 @@ END_MESSAGE_MAP()
 // CSTUMFCDlg 消息处理程序
 
 BOOL CSTUMFCDlg::OnInitDialog()
-{
+{	
 	CDialogEx::OnInitDialog();
 
 	// 将“关于...”菜单项添加到系统菜单中。
@@ -443,8 +443,7 @@ void CSTUMFCDlg::OnBnClickedEditStuButton()
 	stu.elist = temp;
 	list.put(id, stu);
 	list.save();
-	ClearAllList();
-	LoadList();
+	OnBnClickedQueryStuButton();
 	notice("操作成功！");
 }
 
@@ -473,8 +472,7 @@ void CSTUMFCDlg::OnBnClickedDeleteStuButton()
 		list.del(string(CT2A(*it)));
 	}
 	list.save();
-	ClearAllList();
-	LoadList();
+	OnBnClickedQueryStuButton();
 	notice("操作成功！");
 }
 
@@ -561,7 +559,7 @@ void CSTUMFCDlg::OnBnClickedAddFieldButton()
 		return;
 	}
 	ExternalList elist = list.getElist();
-	if (elist.contains(key)) {
+	while (elist.contains(key)) {
 		warn("键已存在，请尝试其他名称！");
 		key = readLine("英文名");
 		if (key == "cancelled")
@@ -621,8 +619,7 @@ void CSTUMFCDlg::OnBnClickedDeleteFieldButton()
 		elist.save();
 		list.save();
 	}
-	ClearAllList();
-	LoadListFiled();
+	OnBnClickedQueryStuButton();
 	notice("操作成功！");
 }
 
@@ -665,8 +662,7 @@ void CSTUMFCDlg::OnBnClickedEditFieldButton()
 	}
 	elist.put(key, Extend(name, regex));
 	elist.save();
-	ClearAllList();
-	LoadListFiled();
+	OnBnClickedQueryStuButton();
 	notice("操作成功！");
 }
 

@@ -63,6 +63,7 @@ public:
 	CButton btn_add_field;
 	CButton btn_edit_field;
 	CButton btn_delete_field;
+	CMenu m_contextMenu;
 	bool isFieldManage = 0;
 };
 

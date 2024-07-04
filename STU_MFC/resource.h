@@ -10,6 +10,7 @@
 #define IDD_INPUT                       140
 #define IDD_WARN                        144
 #define IDD_NOTICEDlg                   146
+#define IDR_MENU1                       150
 #define IDC_EDIT_FIELD                  1003
 #define IDC_SHOW_FIELD                  1004
 #define IDC_DELETE_FIELD                1005
@@ -25,14 +26,20 @@
 #define IDCANCEL                        1021
 #define IDC_SELECT_INVERT               1023
 #define IDC_CLEAR                       1024
+#define ID_0_1                          32774
+#define ID_0_2                          32775
+#define IDC_CONTEXT_MENU                32776
+#define IDM_                            32777
+#define IDM_MENU                        32778
+#define IDR_MENU                        32779
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        148
-#define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1023
+#define _APS_NEXT_RESOURCE_VALUE        151
+#define _APS_NEXT_COMMAND_VALUE         32780
+#define _APS_NEXT_CONTROL_VALUE         1024
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
